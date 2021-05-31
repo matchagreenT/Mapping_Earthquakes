@@ -15,21 +15,31 @@ let satelliteStreets = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/sate
 	accessToken: API_KEY
 });
 
+// Create the map object with center, zoom level and default layer.
+let map = L.map('mapid', {
+  center: [40.7, -94.5],
+  zoom: 3,
+  layers: [streets]
+});
+
 // Create a base layer that holds both maps.
 let baseMaps = {
   "Streets": streets,
   "Satellite": satelliteStreets
 };
 
-// Create the map object with center, zoom level and default layer.
-let map = L.map('mapid', {
-	center: [40.7, -94.5],
-	zoom: 3,
-	layers: [streets]
-});
+// Create the earthquake layer for our map.
+let earthquakes = new L.layerGroup();
 
-// Pass our map layers into our layer control and add the layer control to the map.
-L.control.layers(baseMaps).addTo(map);
+// We define an object that contains the overlays.
+// This overlay will be visible all the time.
+let overlays = {
+  Earthquakes: earthquakes
+};
+
+// Then we add a control to the map that will allow the user to change which
+// layers are visible.
+L.control.layers(baseMaps, overlays).addTo(map);
 
 // Retrieve the earthquake GeoJSON data.
 d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson").then(function(data) {
@@ -86,6 +96,15 @@ d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geoj
       		return L.circleMarker(latlng);
         },
       // We set the style for each circleMarker using our styleInfo function.
-    style: styleInfo
-    }).addTo(map);
+    style: styleInfo,
+
+    //We create a popup for each circleMarker to display the magnitude and location of the earthquake
+    // after the marker has been created and styled.
+    onEachFeature: function(feature, layer) {
+      layer.bindPopup("Magnitude: " + feature.properties.mag + "<br>Location: " + feature.properties.place);
+    }
+  }).addTo(earthquakes);
+
+    // Then we add the earthquake layer to our map.
+    earthquakes.addTo(map);
 });
